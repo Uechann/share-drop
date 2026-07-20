@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// ShareDrop Firestore Security Rules
+// 적용 방법: Firebase 콘솔 → Firestore Database → 규칙 탭에 붙여넣고 게시 (SECURITY.md 참고)
+// 전제: Authentication에서 '익명' 로그인 활성화 (클라이언트가 signInAnonymously로 uid를 받음)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function roomData(roomId) {
+      return get(/databases/$(database)/documents/rooms/$(roomId)).data;
+    }
+
+    function notExpired(data) {
+      return !('expiresAt' in data) || data.expiresAt == null || request.time < data.expiresAt;
+    }
+
+    match /rooms/{roomId} {
+      // 방 코드(URL)를 아는 사람은 누구나 조회 가능 — 링크 공유 모델
+      allow read: if true;
+
+      // 방 생성: 로그인(익명 포함) + 본인을 ownerId로 지정한 경우만
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 100;
+
+      // 방 수정: 방장은 전체 필드, 참여자는 folders 필드만(폴더 생성)
+      allow update: if signedIn() && notExpired(resource.data) && (
+        resource.data.ownerId == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['folders'])
+      );
+
+      // 방 삭제: 방장만
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /images/{imageId} {
+        allow read: if true;
+
+        // 업로드: 로그인 + 본인을 uploaderId로 지정 + 방이 만료 전 +
+        //         (업로드 권한이 '누구나'거나 방장 본인) + 문서 1MB 제한
+        allow create: if signedIn()
+          && request.resource.data.uploaderId == request.auth.uid
+          && notExpired(roomData(roomId))
+          && (roomData(roomId).permission == 'all' || roomData(roomId).ownerId == request.auth.uid)
+          && request.resource.data.dataUrl is string
+          && request.resource.data.dataUrl.size() < 1048576;
+
+        // 수정: 폴더 이동(folder 필드)만 허용 — 다른 메타(업로더 등) 변조 차단
+        allow update: if signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['folder']);
+
+        // 삭제: 업로더 본인 또는 방장
+        allow delete: if signedIn() && (
+          resource.data.uploaderId == request.auth.uid
+          || roomData(roomId).ownerId == request.auth.uid
+        );
+      }
+    }
+
+    // 그 외 모든 경로는 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

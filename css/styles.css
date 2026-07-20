@@ -1,0 +1,35 @@
+body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+/* 커스텀 스크롤바 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* 이미지 체크박스 커스텀 */
+.image-checkbox { display: none; }
+.image-checkbox:checked + label .check-overlay { opacity: 1; border: 3px solid #3b82f6; }
+.image-checkbox:checked + label .check-icon { transform: scale(1); opacity: 1; }
+
+/* 로딩 스피너 */
+.loader {
+    border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6;
+    border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* 드래그 앤 드롭 활성화 상태 */
+.drag-over { border-color: #3b82f6; background-color: #eff6ff; }
+
+.fade-in { animation: fadeIn 0.2s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 모바일(호버 불가 기기): 카드 액션 버튼 항상 표시 — 두 번 탭 버그 수정 */
+@media (hover: none) {
+    .card-actions { opacity: 1 !important; }
+}
+
+/* 드래그(러버밴드) 다중 선택 박스 */
+#marquee {
+    position: fixed; border: 1.5px solid #3b82f6; background: rgba(59,130,246,.12);
+    border-radius: 4px; z-index: 45; pointer-events: none; display: none;
+}
