@@ -1,0 +1,10 @@
+{
+  "name": "share-drop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "링크 하나로 이미지·비디오를 공유하는 실시간 공유룸",
+  "scripts": {
+    "build": "node scripts/generate-config.mjs",
+    "start": "npm run build && python3 -m http.server 8642"
+  }
+}

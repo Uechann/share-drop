@@ -1,21 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { firebaseConfig } from "./config.js";
 
-// Firebase 클라이언트 설정
-// ※ apiKey는 비밀키가 아니라 "프로젝트 식별자"로, 클라이언트에 공개되는 것이 정상입니다.
-//   실제 접근 제어는 Firestore Security Rules(firestore.rules)가 담당합니다.
-//   참고: https://firebase.google.com/docs/projects/api-keys
-const firebaseConfig = {
-    apiKey: "AIzaSyBfoJZbQtBzIwuEc03tOxOv-j0ClpfMZJs",
-    authDomain: "share-drop-621d1.firebaseapp.com",
-    projectId: "share-drop-621d1",
-    storageBucket: "share-drop-621d1.firebasestorage.app",
-    messagingSenderId: "701042467898",
-    appId: "1:701042467898:web:47ea8704b52c2909920103",
-    measurementId: "G-PH9QRWN34T"
-};
-
+// Firebase 클라이언트 설정값은 js/config.js 에 있습니다.
+// - js/config.js 는 gitignore 처리되어 저장소에 커밋되지 않습니다(공개 소스에서 값 제거).
+// - 로컬: .env 채우고 `npm run build`  /  Vercel: 대시보드 환경 변수 → 빌드 시 자동 생성 (SECURITY.md 참고)
+// ※ 다만 이 값들은 배포된 사이트의 브라우저에서는 여전히 노출됩니다(클라이언트 SDK 특성). 비밀이 아니며,
+//    실제 접근 제어는 Firestore Security Rules(firestore.rules)가 담당합니다.
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);

@@ -1,2 +1,8 @@
 .vercel
 .DS_Store
+node_modules
+
+# 환경 변수 및 그로부터 생성되는 Firebase 설정 (저장소에 커밋하지 않음)
+.env
+.env.local
+js/config.js

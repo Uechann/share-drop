@@ -2,8 +2,27 @@
 
 ## 요약: 무엇이 비밀이고 무엇이 아닌가
 
-- **`js/firebase.js`의 apiKey는 비밀키가 아닙니다.** Firebase 클라이언트 apiKey는 "어느 프로젝트인지"를 식별하는 값으로, 웹앱 특성상 사용자 브라우저에 항상 노출됩니다. 공개 레포에 있어도 문제없습니다. ([공식 문서](https://firebase.google.com/docs/projects/api-keys))
+- **Firebase apiKey는 비밀키가 아닙니다.** Firebase 클라이언트 apiKey는 "어느 프로젝트인지"를 식별하는 값으로, 웹앱 특성상 사용자 브라우저에 항상 노출됩니다. ([공식 문서](https://firebase.google.com/docs/projects/api-keys))
 - **실제 보안 경계는 Firestore Security Rules입니다.** 규칙이 열려 있으면 apiKey를 숨겨도 아무 소용이 없고, 규칙이 제대로면 apiKey가 공개돼도 안전합니다.
+
+## Firebase 설정값 관리 (env 방식)
+
+설정값을 소스에 하드코딩하지 않고 환경 변수로 관리합니다. **주의: 이건 "공개 저장소 소스에서 값을 빼는 것"이지, 배포된 사이트의 브라우저에서 숨기는 게 아닙니다** (클라이언트 SDK라 결국 노출됨 — 위 항목 참고).
+
+구조:
+| 파일 | 역할 | 커밋 여부 |
+|---|---|---|
+| `.env` | 로컬 실제 값 | ❌ gitignore |
+| `.env.example` | 채워야 할 키 목록 템플릿 | ✅ 커밋 |
+| `js/config.js` | 빌드가 생성하는 실제 설정 | ❌ gitignore |
+| `js/config.example.js` | config.js 형태 예시 | ✅ 커밋 |
+| `scripts/generate-config.mjs` | env → js/config.js 생성 | ✅ 커밋 |
+
+- **로컬**: `.env.example`을 `.env`로 복사해 값 채우기 → `npm run build` (또는 `npm start`) → `js/config.js` 생성
+- **Vercel**: 대시보드(또는 `vercel env add`)에 `FIREBASE_*` 환경 변수 설정 → 배포 시 `vercel.json`의 `buildCommand`가 `js/config.js` 자동 생성. Production/Preview/Development 3개 환경 모두 등록되어 있음.
+- Vercel 환경 변수 갱신 후에는 재배포해야 반영됩니다 (`vercel deploy --prod`).
+
+⚠️ **git 히스토리**: 이전 커밋에는 설정값이 그대로 남아 있습니다(이미 public에 푸시됨). apiKey가 비밀이 아니라 큰 위험은 아니지만, 신경 쓰인다면 (1) [Google Cloud Console](https://console.cloud.google.com/apis/credentials)에서 API 키에 **HTTP 리퍼러 제한**(허용 도메인만)을 걸거나, (2) 키를 재발급하는 것이 실질적 방어입니다. 히스토리 재작성(filter-repo)은 협업 중이면 권장하지 않습니다.
 
 ## 지금 반드시 해야 할 콘솔 설정 (순서대로)
 
