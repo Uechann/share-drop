@@ -26,11 +26,23 @@ let renderLimit = RENDER_CHUNK;
 
 // 터치 기기 여부 + Web Share API(파일) 지원 여부 → 사진첩 저장 경로
 const isTouchDevice = window.matchMedia('(hover: none)').matches;
-const canShareFiles = isTouchDevice && (() => {
+
+// Web Share API(파일 공유) 사용 가능 여부.
+// ※ 과거엔 '빈 File'로 canShare()를 미리 검사했는데, 일부 안드로이드(삼성 갤럭시 등)는
+//   크기 0인 파일에 false를 반환해 사진첩 저장 기능이 통째로 비활성화되는 버그가 있었다.
+//   이제 API 존재 여부만 확인하고, 실제 공유 가능 여부는 호출 시점에 '진짜 파일'로 검사한다.
+const canShareFiles = isTouchDevice
+    && typeof navigator.share === 'function'
+    && typeof navigator.canShare === 'function';
+
+// 호출 시점에 실제 파일로 공유 가능한지 확인
+function canShareTheseFiles(files) {
     try {
-        return !!navigator.canShare && navigator.canShare({ files: [new File([''], 't.png', { type: 'image/png' })] });
-    } catch (e) { return false; }
-})();
+        return typeof navigator.canShare === 'function' && navigator.canShare({ files });
+    } catch (e) {
+        return false;
+    }
+}
 
 // 업로드 진행 상태 관리
 const uploadTasks = new Map(); // taskId -> { id, file, status: waiting|uploading|done|error }
@@ -123,7 +135,10 @@ const els = {
     lightboxImg: document.getElementById('lightbox-img'),
     lightboxVideo: document.getElementById('lightbox-video'),
     lightboxClose: document.getElementById('lightbox-close'),
-    lightboxInfo: document.getElementById('lightbox-info')
+    lightboxInfo: document.getElementById('lightbox-info'),
+    lightboxPrev: document.getElementById('lightbox-prev'),
+    lightboxNext: document.getElementById('lightbox-next'),
+    lightboxCounter: document.getElementById('lightbox-counter')
 };
 
 // 고유 ID 생성/조회 — 익명 인증 실패 시에만 쓰는 폴백 (로컬 스토리지 기반)
@@ -1153,7 +1168,36 @@ function onFilterChange() {
 els.filterUploader.addEventListener('change', onFilterChange);
 els.filterFormat.addEventListener('change', onFilterChange);
 
+// 라이트박스에서 보고 있는 항목의 위치 (currentFilteredImages 기준)
+let lightboxIndex = -1;
+
 function openLightbox(imgObj) {
+    const idx = currentFilteredImages.findIndex(i => i.id === imgObj.id);
+    renderLightboxAt(idx === -1 ? 0 : idx, imgObj);
+
+    els.lightbox.classList.remove('hidden');
+    els.lightbox.classList.add('flex');
+    document.body.style.overflow = 'hidden'; // 뒤 배경 스크롤 방지
+}
+
+// ← → 로 이동
+function stepLightbox(delta) {
+    const next = lightboxIndex + delta;
+    if (next < 0 || next >= currentFilteredImages.length) return; // 양 끝에서는 멈춤
+    renderLightboxAt(next);
+}
+
+function renderLightboxAt(index, fallbackObj = null) {
+    const imgObj = currentFilteredImages[index] || fallbackObj;
+    if (!imgObj) return;
+    lightboxIndex = index;
+
+    // 위치 표시 + 양 끝에서 화살표 버튼 숨김
+    const total = currentFilteredImages.length;
+    els.lightboxCounter.textContent = total > 0 ? `${index + 1} / ${total}` : '';
+    els.lightboxPrev.classList.toggle('invisible', index <= 0);
+    els.lightboxNext.classList.toggle('invisible', index >= total - 1);
+
     if (imgObj.kind === 'video') {
         els.lightboxImg.classList.add('hidden');
         els.lightboxImg.src = '';
@@ -1178,10 +1222,6 @@ function openLightbox(imgObj) {
         <span class="uppercase ml-2 px-1.5 py-0.5 bg-gray-800 text-gray-300 rounded text-xs">${imgObj.format || 'IMG'}</span>
         ${imgObj.fileName ? `<span class="text-gray-400 text-xs ml-2">${escapeHtml(imgObj.fileName)}</span>` : ''}
     `;
-
-    els.lightbox.classList.remove('hidden');
-    els.lightbox.classList.add('flex');
-    document.body.style.overflow = 'hidden'; // 뒤 배경 스크롤 방지
 }
 
 function closeLightbox() {
@@ -1191,11 +1231,33 @@ function closeLightbox() {
     els.lightboxVideo.pause();
     els.lightboxVideo.removeAttribute('src');
     document.body.style.overflow = '';
+    lightboxIndex = -1;
+}
+
+function isLightboxOpen() {
+    return !els.lightbox.classList.contains('hidden');
 }
 
 els.lightboxClose.addEventListener('click', closeLightbox);
 els.lightbox.addEventListener('click', (e) => {
     if (e.target === els.lightbox) closeLightbox(); // 배경 클릭 시 닫기
+});
+els.lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); stepLightbox(-1); });
+els.lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); stepLightbox(1); });
+
+// 키보드: ← → 로 사진 이동, ESC 로 닫기
+document.addEventListener('keydown', (e) => {
+    if (!isLightboxOpen()) return;
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        closeLightbox();
+    } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();  // 영상 탐색(seek) 등 기본 동작 방지
+        stepLightbox(-1);
+    } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        stepLightbox(1);
+    }
 });
 
 function updateSelectionUI() {
@@ -1263,24 +1325,44 @@ els.btnDeleteSelected.addEventListener('click', () => {
     );
 });
 
-// 사진첩 저장 (모바일): 선택 파일들을 공유 시트로 → '이미지 저장'으로 사진첩에 저장
+// 사진첩 저장 (모바일): 선택 파일들을 공유 시트로 → 갤러리/사진 앱 선택 시 사진첩에 저장
+// ※ 안드로이드(갤럭시 등)는 다중 파일 공유를 거부하는 경우가 있어 단계적으로 폴백한다.
 els.btnSavePhotos.addEventListener('click', async () => {
     if (selectedImageIds.size === 0) return;
-    try {
-        const files = imagesData
-            .filter(img => selectedImageIds.has(img.id))
-            .map(img => dataUrlToFile(img.dataUrl, img.fileName || `sharedrop_${img.id}.${img.format || 'png'}`));
-        if (navigator.canShare && navigator.canShare({ files })) {
+
+    // navigator.share 는 사용자 제스처 안에서 호출해야 하므로 파일 생성은 동기로 처리
+    const selected = imagesData.filter(img => selectedImageIds.has(img.id));
+    const files = selected.map(img =>
+        dataUrlToFile(img.dataUrl, img.fileName || `sharedrop_${img.id}.${img.format || 'png'}`)
+    );
+
+    // 1순위: 선택한 전체를 한 번에 공유
+    if (canShareTheseFiles(files)) {
+        try {
             await navigator.share({ files });
-        } else {
-            showToast('이 브라우저에서는 한 번에 공유할 수 없습니다. .zip을 이용해주세요.', true);
-        }
-    } catch (err) {
-        if (err?.name !== 'AbortError') { // 사용자가 시트를 닫은 경우는 무시
-            console.error('Share error:', err);
-            showToast('공유에 실패했습니다.', true);
+            showToast('공유 시트에서 갤러리(사진) 앱을 선택하면 사진첩에 저장됩니다.');
+            return;
+        } catch (err) {
+            if (err?.name === 'AbortError') return; // 사용자가 시트를 닫음
+            console.warn('다중 파일 공유 실패, 폴백합니다:', err);
         }
     }
+
+    // 2순위: 다중은 막혔지만 1장은 가능한 경우(안드로이드에서 흔함) → 첫 장만 공유 시도
+    if (files.length === 1 && canShareTheseFiles([files[0]])) {
+        try {
+            await navigator.share({ files: [files[0]] });
+            showToast('공유 시트에서 갤러리(사진) 앱을 선택하면 사진첩에 저장됩니다.');
+            return;
+        } catch (err) {
+            if (err?.name === 'AbortError') return;
+            console.warn('단일 공유도 실패, 폴백합니다:', err);
+        }
+    }
+
+    // 최후: .zip 다운로드로 폴백 (기능이 아무것도 안 되는 상황 방지)
+    showToast('여러 장 공유가 지원되지 않아 .zip으로 저장합니다.', true);
+    await downloadSelectedAsZip();
 });
 
 // 드래그(러버밴드) 다중 선택 — 데스크톱 전용
@@ -1326,12 +1408,21 @@ if (!isTouchDevice) {
         updateSelectionUI();
     });
     window.addEventListener('mouseup', () => {
-        if (marqueeStart) {
-            marqueeStart = null;
-            marqueeActive = false;
-            els.marquee.style.display = 'none';
-            document.body.style.userSelect = '';
+        if (!marqueeStart) return;
+
+        // 드래그가 아니라 '빈 공간 클릭'이었다면 전체 선택 해제.
+        // (드래그 임계값 8px 미만이면 marqueeActive가 false로 남아, 예전엔 선택이 그대로 유지돼
+        //  선택을 푸는 방법이 사실상 없었다 — '전체 드래그 풀기 안 됨' 버그)
+        if (!marqueeActive && !marqueeStart.additive && selectedImageIds.size > 0) {
+            selectedImageIds.clear();
+            syncCheckboxes();
+            updateSelectionUI();
         }
+
+        marqueeStart = null;
+        marqueeActive = false;
+        els.marquee.style.display = 'none';
+        document.body.style.userSelect = '';
     });
 }
 
@@ -1342,13 +1433,14 @@ async function downloadSingleImage(img) {
     if (canShareFiles) {
         try {
             const file = dataUrlToFile(img.dataUrl, fileName);
-            if (navigator.canShare({ files: [file] })) {
+            if (canShareTheseFiles([file])) {
                 await navigator.share({ files: [file] });
+                showToast('공유 시트에서 갤러리(사진) 앱을 선택하면 사진첩에 저장됩니다.');
                 return;
             }
         } catch (err) {
             if (err?.name === 'AbortError') return; // 사용자가 시트를 닫음
-            console.warn('Share failed, falling back to download:', err);
+            console.warn('공유 실패, 다운로드로 폴백합니다:', err);
         }
     }
 
@@ -1358,10 +1450,15 @@ async function downloadSingleImage(img) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+
+    // 안드로이드 등에서 공유가 불가능해 파일 다운로드로 처리된 경우 저장 위치를 안내
+    if (isTouchDevice) {
+        showToast('다운로드 폴더에 저장했습니다. (사진첩 저장은 공유 기능이 필요합니다)');
+    }
 }
 
-// 일괄 다운로드 (JSZip)
-els.btnDownloadSelected.addEventListener('click', async () => {
+// 선택 항목 .zip 다운로드 (공유 실패 시 폴백으로도 사용)
+async function downloadSelectedAsZip() {
     if (selectedImageIds.size === 0) return;
     try {
         els.btnDownloadSelected.disabled = true;
@@ -1400,7 +1497,9 @@ els.btnDownloadSelected.addEventListener('click', async () => {
         els.btnDownloadSelected.disabled = false;
         els.btnDownloadSelected.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg> .zip 다운로드';
     }
-});
+}
+
+els.btnDownloadSelected.addEventListener('click', downloadSelectedAsZip);
 
 // 앱 초기 실행 (해시 라우터 트리거) — 인증 대기 중 문서 로드가 끝난 경우도 처리
 if (document.readyState === 'loading') {
