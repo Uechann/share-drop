@@ -6,9 +6,9 @@
 
 🔗 **데모: [share-drop-one.vercel.app](https://share-drop-one.vercel.app)**
 
-<!-- 스크린샷을 넣으려면 아래 주석을 해제하고 이미지 경로를 지정하세요
-![ShareDrop 화면](docs/screenshot.png)
--->
+|  방 만들기 / 입장  |  갤러리  |
+| :---: | :---: |
+| ![홈 화면](docs/screenshot-home.png) | ![갤러리 화면](docs/screenshot-gallery.png) |
 
 ---
 
