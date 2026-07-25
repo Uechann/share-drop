@@ -537,11 +537,11 @@ function renderFolderChips() {
         if (img.folder) folderCounts[img.folder] = (folderCounts[img.folder] || 0) + 1;
     });
 
-    const base = 'folder-chip shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors';
-    let html = `<button data-folder="" class="${base} ${!currentFolder ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}">전체 (${imagesData.length})</button>`;
+    const base = 'folder-chip chip-glass shrink-0 px-3 py-1.5 rounded-full text-xs font-medium';
+    let html = `<button data-folder="" class="${base} ${!currentFolder ? 'chip-active' : 'text-slate-600'}">전체 (${imagesData.length})</button>`;
     folders.forEach(f => {
         const active = currentFolder === f;
-        html += `<button data-folder="${escapeHtml(f)}" class="${base} ${active ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}">📁 ${escapeHtml(f)} (${folderCounts[f] || 0})</button>`;
+        html += `<button data-folder="${escapeHtml(f)}" class="${base} ${active ? 'chip-active' : 'text-slate-600'}">📁 ${escapeHtml(f)} (${folderCounts[f] || 0})</button>`;
     });
     els.folderChips.innerHTML = html;
 
@@ -1500,31 +1500,6 @@ async function downloadSelectedAsZip() {
 }
 
 els.btnDownloadSelected.addEventListener('click', downloadSelectedAsZip);
-
-// ===== 히어로(홈) 인터랙션 =====
-// 네비바 '시작하기' → 방 만들기 카드로 스크롤 + 방 이름 입력에 포커스
-const navStartBtn = document.getElementById('nav-start');
-if (navStartBtn) {
-    navStartBtn.addEventListener('click', () => {
-        document.getElementById('start-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => els.inputRoomName?.focus(), 400);
-    });
-}
-
-// 글래스 오브 영상 로드 실패(외부 자산이라 언제든 깨질 수 있음) 시 CSS 폴백 오브 노출
-const heroOrb = document.getElementById('hero-orb');
-if (heroOrb) {
-    const showOrbFallback = () => {
-        heroOrb.style.display = 'none';
-        const fb = document.querySelector('.orb-fallback');
-        if (fb) fb.style.opacity = '0.9';
-    };
-    heroOrb.addEventListener('error', showOrbFallback, true);
-    // 일정 시간 내 재생 준비가 안 되면(403/네트워크 차단 등) 폴백
-    setTimeout(() => {
-        if (heroOrb.readyState === 0) showOrbFallback();
-    }, 4000);
-}
 
 // 앱 초기 실행 (해시 라우터 트리거) — 인증 대기 중 문서 로드가 끝난 경우도 처리
 if (document.readyState === 'loading') {
