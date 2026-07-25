@@ -7,6 +7,13 @@ body {
 /* Fustat: 헤드라인/브랜드용 (라틴). 한글은 시스템 폰트로 폴백 */
 .font-fustat { font-family: 'Fustat', 'Inter', sans-serif; }
 
+/* 한국어 가독성: 단어 중간에서 끊지 않고(keep-all) 줄 길이를 균형 있게(balance) */
+.text-balance-kr {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    text-wrap: balance;
+}
+
 /* ===== 리퀴드 글래스 디자인 시스템 ===== */
 
 /* 배경 블루 글로우 (블러 처리된 타원) */

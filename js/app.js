@@ -116,6 +116,7 @@ const els = {
     filterUploader: document.getElementById('filter-uploader'),
     filterFormat: document.getElementById('filter-format'),
     btnSelectAll: document.getElementById('btn-select-all'),
+    selectionActions: document.getElementById('selection-actions'),
     btnUnselectAll: document.getElementById('btn-unselect-all'),
     btnDeleteSelected: document.getElementById('btn-delete-selected'),
     btnSavePhotos: document.getElementById('btn-save-photos'),
@@ -1265,11 +1266,10 @@ function updateSelectionUI() {
     els.uiSelectedCount.textContent = `선택됨: ${count}개`;
 
     const hasSelection = count > 0;
-    els.btnUnselectAll.disabled = !hasSelection;
-    els.btnDownloadSelected.disabled = !hasSelection;
-    els.btnDeleteSelected.disabled = !hasSelection;
-    els.btnSavePhotos.disabled = !hasSelection;
-    els.moveFolder.disabled = !hasSelection;
+    // 선택 액션 그룹은 선택된 항목이 있을 때만 노출 (모바일 상단 여백 절약)
+    els.selectionActions.classList.toggle('hidden', !hasSelection);
+    els.selectionActions.classList.toggle('flex', hasSelection);
+    els.uiSelectedCount.classList.toggle('hidden', !hasSelection);
 }
 
 // 모바일(공유 시트 지원 기기)에서만 '사진첩 저장' 버튼 노출
