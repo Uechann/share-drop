@@ -1,4 +1,89 @@
-body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+/* Fustat: 헤드라인/브랜드용 (라틴). 한글은 시스템 폰트로 폴백 */
+.font-fustat { font-family: 'Fustat', 'Inter', sans-serif; }
+
+/* ===== 리퀴드 글래스 디자인 시스템 ===== */
+
+/* 배경 블루 글로우 (블러 처리된 타원) */
+.hero-glow { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.hero-glow::before,
+.hero-glow::after {
+    content: ""; position: absolute; border-radius: 9999px; filter: blur(120px); opacity: 0.55;
+}
+.hero-glow::before {
+    width: 640px; height: 640px; top: -220px; left: -160px;
+    background: radial-gradient(circle at center, #60B1FF 0%, rgba(96,177,255,0) 70%);
+}
+.hero-glow::after {
+    width: 520px; height: 520px; top: -120px; left: 240px;
+    background: radial-gradient(circle at center, #319AFF 0%, rgba(49,154,255,0) 70%);
+}
+
+/* 강한 리퀴드 글래스 (네비바/카드 공통) */
+.glass {
+    background: rgba(255, 255, 255, 0.3);
+    -webkit-backdrop-filter: blur(50px);
+    backdrop-filter: blur(50px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0px 4px 4px 0px rgba(255, 255, 255, 0.25);
+}
+.glass-card {
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: inset 0px 4px 4px 0px rgba(255, 255, 255, 0.4), 0 24px 60px -24px rgba(30, 90, 180, 0.25);
+}
+
+/* 글래스 입력/셀렉트 */
+.glass-input {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: border-color .15s, box-shadow .15s;
+}
+.glass-input:focus {
+    outline: none;
+    border-color: rgba(0, 132, 255, 0.6);
+    box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.15);
+}
+
+/* 프라이머리 CTA (일렉트릭 블루 글래스) */
+.cta-primary {
+    background: rgba(0, 132, 255, 0.85);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    box-shadow: inset 0px 4px 4px 0px rgba(255, 255, 255, 0.35), 0 10px 30px -8px rgba(0, 132, 255, 0.5);
+    transition: transform .2s ease, background .2s ease;
+}
+.cta-primary:hover { transform: scale(1.02); background: rgba(0, 132, 255, 0.95); }
+
+/* 글래스 오브 (히어로 우측 영상) */
+.orb-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+.orb-video {
+    width: 100%; max-width: 640px;
+    transform: scale(1.25);
+    mix-blend-mode: screen;
+    filter: hue-rotate(-55deg) saturate(250%) brightness(1.2) contrast(1.1);
+    pointer-events: none;
+}
+/* 영상 로드 실패 시 CSS 폴백 오브 (기본 숨김, app.js가 노출) */
+.orb-fallback {
+    position: absolute; width: 70%; aspect-ratio: 1; border-radius: 9999px;
+    background: radial-gradient(circle at 35% 30%, #7cc0ff 0%, #0084ff 45%, #0a4fd0 100%);
+    filter: blur(6px); opacity: 0; box-shadow: 0 30px 80px -20px rgba(0, 132, 255, 0.6);
+    animation: orbFloat 6s ease-in-out infinite;
+}
+@keyframes orbFloat { 0%,100% { transform: translateY(-8px); } 50% { transform: translateY(8px); } }
+
+/* Trusted-by 로고 (그레이스케일) */
+.trusted-logo { filter: grayscale(1); opacity: 0.5; transition: opacity .2s; }
+.trusted-logo:hover { opacity: 0.8; }
+
 /* 커스텀 스크롤바 */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

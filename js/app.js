@@ -304,7 +304,7 @@ els.btnCreateRoom.addEventListener('click', async () => {
         showToast('방 생성에 실패했습니다. DB 설정을 확인하세요.', true);
     } finally {
         els.btnCreateRoom.disabled = false;
-        els.btnCreateRoom.innerHTML = '<span>새 공유룸 만들기</span><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>';
+        els.btnCreateRoom.innerHTML = '<span>Get Started Now</span><span class="w-7 h-7 rounded-full bg-white/90 text-[rgba(0,132,255,1)] flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></span>';
     }
 });
 
@@ -1500,6 +1500,31 @@ async function downloadSelectedAsZip() {
 }
 
 els.btnDownloadSelected.addEventListener('click', downloadSelectedAsZip);
+
+// ===== 히어로(홈) 인터랙션 =====
+// 네비바 '시작하기' → 방 만들기 카드로 스크롤 + 방 이름 입력에 포커스
+const navStartBtn = document.getElementById('nav-start');
+if (navStartBtn) {
+    navStartBtn.addEventListener('click', () => {
+        document.getElementById('start-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => els.inputRoomName?.focus(), 400);
+    });
+}
+
+// 글래스 오브 영상 로드 실패(외부 자산이라 언제든 깨질 수 있음) 시 CSS 폴백 오브 노출
+const heroOrb = document.getElementById('hero-orb');
+if (heroOrb) {
+    const showOrbFallback = () => {
+        heroOrb.style.display = 'none';
+        const fb = document.querySelector('.orb-fallback');
+        if (fb) fb.style.opacity = '0.9';
+    };
+    heroOrb.addEventListener('error', showOrbFallback, true);
+    // 일정 시간 내 재생 준비가 안 되면(403/네트워크 차단 등) 폴백
+    setTimeout(() => {
+        if (heroOrb.readyState === 0) showOrbFallback();
+    }, 4000);
+}
 
 // 앱 초기 실행 (해시 라우터 트리거) — 인증 대기 중 문서 로드가 끝난 경우도 처리
 if (document.readyState === 'loading') {
